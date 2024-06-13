@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('Menu_image.jpg');
+    background-size: cover;
+  }
+
+  .button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .overlay {
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 200px;
+    height: 50px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    font-size: 18px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  #Go-to-train{
+    top:40%;
+  }
+  #Settings_Introduction_Button{
+    top:50%;
+  }
+  #Modes_Introduction_Button{
+    top:60%;
+  }
+
+  .modal {
+    display: none;  /*默认不展示*/
+    position: fixed;
+    z-index: 1001;
+    left: 50%;      /*居中*/
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-height: 70%;
+    background: white;
+    border-radius: 10px;
+    /*阴影效果*/
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    /*内边距*/
+    padding: 20px;
+    /*滚动条*/
+    overflow-y: auto;
+  }
+  /*开启面板*/
+  .modal.open {
+    display: block;
+  }
+  /*标题区域*/
+  .modal-header {
+    display: flex;
+    justify-content: space-between;/*两端对齐*/
+    align-items: center;/*居中对齐*/
+  }
+  /*上间距*/
+  .modal-body {
+    margin-top: 10px;
+  }
+</style>
+<title>Game Menu</title>
+</head>
+<body>
+
+<div id ="Go-to-train" class="overlay" onclick="redirectToShootGame()">Go to train</div>
+<div id ="Settings_Introduction_Button" class="overlay" onclick="openSettingsModal()">Settings Introduction</div>
+<div id ="Modes_Introduction_Button" class="overlay" onclick="openModesModal()">Modes Introduction</div>
+
+<!-- 游戏设置界面介绍 -->
+<div id="Settings_Introduction" class="modal">
+  <div class="modal-header">
+    <span>Settings Introduction</span>
+    <button onclick="closeSettingsModal()">Close</button>
+  </div>
+  <div class="modal-body">
+    <p>In tool 'Settings', you can:</p>
+    <ul>
+      <li>Choose different background maps</li>
+        <img src="setting-map.png" width=90%>
+      <li>Choose different weapon styles</li>
+        <img src="setting-gun.png" width=90%>
+      <li>Change the size and opacity of the target</li>
+        <img src="setting-dif.png" width=90%>
+      <li>Change the color of the target</li>
+        <img src="setting-target.png" width=90%>
+    </ul>
+  </div>
+</div>
+<!--游戏模式选择介绍-->
+<div id="Modes_Introduction" class="modal">
+  <div class="modal-header">
+    <span>Modes Introduction</span>
+    <button onclick="closeModesModal()">Close</button>
+  </div>
+  <div class="modal-body">
+    <p>To use tool 'GameMode', you ought to know:</p>
+    <ul>
+      <li>What kind of practice do you need</li>
+      <li>Your current skill level</li>
+      <li>Your target skill level</li>
+    </ul>
+    <p>After that:</p>
+    <ul>
+        <li>Choose the mode that suits you</li>
+        <li>Adjust the difficulty level that suits you</li>
+    </ul>
+    <p>Modes Detail:</p>
+    <ul>
+        <li>warming-up:<br>
+            In this mode, the target will disappear after 1.5 seconds,
+            which is a simple warm-up mode.
+        </li>
+        <li>fast-click:<br>
+            In this mode, the target will gradually become transparent and difficult to see before disappearing.
+            Adjust the difficulty to train your reflexes and positioning skills!
+        </li>
+        <li>exact-remember:<br>
+            In this mode, the target will become invisible after a period of time,
+            remember its position and shoot it, adjust the difficulty to exercise your memory ability!</li>
+        <li>
+            In every mode,the train lasts 60s.
+        </li>
+
+    </ul>
+  </div>
+</div>
+
+<script>
+  var settingsModal = document.getElementById('Settings_Introduction');
+  var modesModal = document.getElementById('Modes_Introduction');
+
+  function redirectToShootGame() {
+    window.location.href = "ShootGame.html";
+  }
+
+  function openSettingsModal() {
+    settingsModal.classList.add('open');
+  }
+  function closeSettingsModal() {
+    settingsModal.classList.remove('open');
+  }
+  function openModesModal() {
+    modesModal.classList.add('open')
+  }
+  function closeModesModal() {
+    modesModal.classList.remove('open')
+  }
+</script>
+</body>
+</html>

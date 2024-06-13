@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            /*透视效果*/
+            perspective: 1000px;
+            perspective-origin: 50% 50%;
+            /*设置背景*/
+            background-image: url('local-image-vertigo_mid.jpg');
+            background-repeat: no-repeat;   /*背景不重复平铺*/
+            background-attachment: fixed;   /*固定图像*/
+            background-size: cover;     /*背景自适应填充*/
+            margin: 0;      /*外边距设置为0   图像紧贴屏幕边缘*/
+            overflow: hidden;   /*超出内容隐藏*/
+        }
+        #game-board {       /*800*900大小的容器*/
+            position: relative;
+            width: 800px;
+            height: 900px;
+            margin: 0 auto;     /*左右贴合 上下自适应居中*/
+            transform-style: preserve-3d;
+        }
+        .circle {           /*设置标靶：绝对位置*/
+            position: absolute;
+            border-radius: 50%; /*设置成圆形*/
+            /*颜色为：颜色/白色交替 形成标靶的效果*/
+            background: radial-gradient(circle, currentColor 10%, white 20%, currentColor 30%, white 40%, currentColor 50%, white 60%, currentColor 70%, white 80%, currentColor 90%, white 100%);
+            /*transform: translateZ(150px);     3D效果*/
+            z-index: 1100;  /*图层*/
+            opacity: 1;     /*透明度*/
+        }
+        .overlay {          /*设置一个窗口*/
+            position: absolute;
+            z-index: 1000;
+            color: white;
+            font-size: 1.5em;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+        }
+        /* 按钮 计分板 计时器*/
+        #start-stop-button {
+            top: 10px;
+            left: 10px;
+        }
+        #settings-button {
+            top: 70px;
+            left: 10px;
+        }
+        #GameMode-button {
+            top: 130px;
+            left: 10px;
+        }
+        #Back {
+            top: 10px;
+            right: 10px;
+        }
+        #score {
+            top: 70px;
+            right: 10px;
+        }
+        #timer{
+            top: 130px;
+            right: 10px;
+        }
+        /*游戏结束得分展示*/
+        #final-score {
+            /*居中*/
+            /*左上在中心*/
+            top: 50%;
+            left: 50%;
+            /*向左向上移动50%*/
+            transform: translate(-50%, -50%);
+            /*大小 默认状态隐藏*/
+            font-size: 2em;
+            display: none;
+        }
+        #gun-image {        /*枪械贴图 底部居中*/
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+        .crosshair-cursor {  /*设置准星*/
+            cursor: url('awp_crossHair.jpg'), crosshair;
+        }
+        /*settings界面*/
+        .modal {
+            display: none;  /*默认不展示*/
+            position: fixed;
+            z-index: 1001;
+            left: 50%;      /*居中*/
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            max-height: 70%;
+            background: white;
+            border-radius: 10px;
+            /*阴影效果*/
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            /*内边距*/
+            padding: 20px;
+            /*滚动条*/
+            overflow-y: auto;
+        }
+        /*开启面板*/
+        .modal.open {
+            display: block;
+        }
+        /*标题区域*/
+        .modal-header {
+            display: flex;
+            justify-content: space-between;/*两端对齐*/
+            align-items: center;/*居中对齐*/
+        }
+        /*上间距*/
+        .modal-body {
+            margin-top: 10px;
+        }
+        /*按钮容器*/
+        .button-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;        /*下间距*/
+        }
+        .button-container button {
+            cursor: pointer;    /*鼠标回到指针形式*/
+            padding: 10px;
+            border: none;
+            /*按钮灰字体白*/
+            background: #444;
+            color: white;
+            border-radius: 5px;
+        }
+        /*区域默认不显示*/
+        .settings-content {
+            display: none;
+        }
+        .settings-content.active {
+            display: block;
+        }
+        /*选项按钮*/
+        .background-option, .gun-option, .target-color-option {
+            margin: 5px 0;
+            cursor: pointer;
+        }
+        /*选项中的图像部分：自适应宽度*/
+        .background-option img, .gun-option img, .target-color-option img {
+            width: 100%;
+            border-radius: 5px;
+        }
+        /*滑块*/
+        .slider-container {
+            margin: 10px 0;
+        }
+        .slider-container label {
+            display: block;
+        }
+        .slider-container input {
+            width: 100%;
+        }
+        /*标靶颜色设置*/
+        .target-color-option {
+            display: inline-block;/*同行显示*/
+            width: 16%;
+            margin: 1%;
+        }
+        /*标靶预览图*/
+        .target-color-option img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <!--  布局  -->
+    <div id="game-board"></div>
+    <div id="start-stop-button" class="overlay" onclick="toggleGame()">Start</div>
+    <div id="settings-button" class="overlay" onclick="openSettings()">Settings</div>
+    <div id="GameMode-button" class="overlay" onclick="openMode()">GameMode</div>
+    <div id="score" class="overlay">Score: 0</div>
+    <div id="timer" class="overlay">Time left: 60</div>
+    <div id="Back" class="overlay" onclick="BackToMenu()">Back</div>
+    <div id="final-score" class="overlay"></div>
+    <img id="gun-image" src="gun-image_awp_.png" alt="Gun Image" width="400">
+    <!--游戏属性设置界面-->
+    <div id="settings-modal" class="modal">
+        <div class="modal-header">
+            <span>Settings</span>
+            <button onclick="closeSettings()">Close</button>
+        </div>
+        <!--四个选项-->
+        <div class="button-container">
+            <button onclick="showContent('map-select')">Map Select</button>
+            <button onclick="showContent('gun-select')">Gun Select</button>
+            <button onclick="showContent('difficulty-select')">Difficulty Select</button>
+            <button onclick="showContent('target-color-select')">Target Color</button>
+        </div>
+        <div class="modal-body">
+            <!--选择背景-->
+            <div id="map-select" class="settings-content active">
+                <h3>Map Select</h3>
+                <div class="background-option" onclick="changeBackground('local-image-ancient.jpg')">
+                    <img src="local-image-ancient.jpg" alt="Ancient_A Background">
+                </div>
+                <div class="background-option" onclick="changeBackground('local-image-ancient_B.jpg')">
+                    <img src="local-image-ancient_B.jpg" alt="Ancient_B Background">
+                </div>
+                <div class="background-option" onclick="changeBackground('local-image-inferno_A.jpg')">
+                    <img src="local-image-inferno_A.jpg" alt="Inferno_A Background">
+                </div>
+                <div class="background-option" onclick="changeBackground('local-image-inferno_B.jpg')">
+                    <img src="local-image-inferno_B.jpg" alt="Inferno_B Background">
+                </div>
+                <div class="background-option" onclick="changeBackground('local-image-vertigo_A.jpg')">
+                    <img src="local-image-vertigo_A.jpg" alt="Vertigo_A Background">
+                </div>
+                <div class="background-option" onclick="changeBackground('local-image-vertigo_mid.jpg')">
+                    <img src="local-image-vertigo_mid.jpg" alt="Vertigo_mid Background">
+                </div>
+                <div class="background-option" onclick="changeBackground('local-imag-white.jpg')">
+                    <img src="local-imag-white.jpg" alt="White">
+                </div>
+
+            </div>
+            <!--选择武器-->
+            <div id="gun-select" class="settings-content">
+                <h3>Gun Select</h3>
+                <div class="gun-option" onclick="changeGun('gun-image_awp_.png')">
+                    <img src="gun-image_awp_.png" alt="AWP">
+                </div>
+                <div class="gun-option" onclick="changeGun('gun-image_m4a1s_.png')">
+                    <img src="gun-image_m4a1s_.png" alt="M4A1S">
+                </div>
+                <div class="gun-option" onclick="changeGun('knife-image_bayonet_.png')">
+                    <img src="knife-image_bayonet_.png" alt="bayonet">
+                </div>
+            </div>
+            <!--调整难度-->
+            <div id="difficulty-select" class="settings-content">
+                <h3>Difficulty Select</h3>
+                <div class="slider-container">
+                    <label for="size-slider">Circle Size</label>
+                    <input type="range" id="size-slider" min="20" max="100" value="100" oninput="updateCircleSize(this.value)">
+                </div>
+                <div class="slider-container">
+                    <label for="opacity-slider">Circle Opacity</label>
+                    <input type="range" id="opacity-slider" min="0.3" max="1" step="0.1" value="1" oninput="updateCircleOpacity(this.value)">
+                </div>
+            </div>
+            <!--选择标靶颜色-->
+            <div id="target-color-select" class="settings-content">
+                <h3>Target Color</h3>
+                <div class="target-color-option" onclick="changeTargetColor('red')">
+                    <img src="red-preview.png" alt="Red">
+                </div>
+                <div class="target-color-option" onclick="changeTargetColor('green')">
+                    <img src="green-preview.png" alt="Green">
+                </div>
+                <div class="target-color-option" onclick="changeTargetColor('blue')">
+                    <img src="blue-preview.png" alt="Blue">
+                </div>
+                <div class="target-color-option" onclick="changeTargetColor('purple')">
+                    <img src="purple-preview.png" alt="Purple">
+                </div>
+                <div class="target-color-option" onclick="changeTargetColor('orange')">
+                    <img src="orange-preview.png" alt="Orange">
+                </div>
+                <div class="target-color-option">
+                    <label for="custom-color">Custom Color</label>
+                    <input type="color" id="custom-color" oninput="changeTargetColor(this.value)">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--游戏模式选择界面-->
+    <div id="GameMode" class="modal">
+        <div class="modal-header">
+            <span>GameMode</span>
+            <button onclick="closeMode()">Close</button>
+        </div>
+        <!--三个选项-->
+        <div class="button-container">
+            <button onclick="showContent('warming-up')">warming-up</button>
+            <button onclick="showContent('fast-click')">fast-click</button>
+            <button onclick="showContent('exact-remember')">exact-remember</button>
+        </div>
+        <div class="modal-body">
+            <!--warming-up-->
+            <div id="warming-up" class="settings-content active">
+                <h3>warming-up</h3>
+                <h5>
+                    it's a warming-up train<br>
+                    target will escape in 1.5s !
+                </h5>
+                <div class="checkbox-container">
+                    <label for="choose-mode-fast-click">Choose Mode</label>
+                    <input type="checkbox" id="choose-mode-fast-click">
+                </div>
+            </div>
+            <!--fast-click-->
+            <div id="fast-click" class="settings-content">
+                <h3>fast-click</h3>
+                <h5>
+                    it's a fast-click train<br>
+                    target will fade out!
+                </h5>
+                <div class="slider-container">
+                    <label for="Time-slider">Time to disappearance</label>
+                    <input type="range" id="Time-slider" min="0.3" max="2.5" step="0.05" value="1.5">
+                </div>
+                <div class="slider-container">
+                    <label for="Fade">Fade Conversion</label>
+                    <input type="range" id="Fade" min="0.2" max="1" step="0.005" value="0.7">
+                </div>
+                <div class="checkbox-container">
+                    <label for="choose-mode-fast-click">Choose Mode</label>
+                    <input type="checkbox" id="choose-mode-fast-click">
+                </div>
+            </div>
+            <!--exact-remember-->
+            <div id="exact-remember" class="settings-content">
+                <h3>exact-remember</h3>
+                <h5>
+                    it's a remembering train<br>
+                    target will be transparent and disappear in 2.5s!
+                </h5>
+                <div class="slider-container">
+                    <label for="Time-slider-exr">Time to fade out</label>
+                    <input type="range" id="Time-slider-exr" min="0.2" max="1.5" step="0.05" value="0.8">
+                </div>
+                <div class="slider-container">
+                    <label for="Fade-exr">Fade with opacity</label>
+                    <input type="range" id="Fade-exr" min="0.2" max="1" step="0.005" value="0.9">
+                </div>
+                <div class="checkbox-container">
+                    <label for="choose-mode-fast-click">Choose Mode</label>
+                    <input type="checkbox" id="choose-mode-fast-click">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var score = 0;      /*得分*/
+        var gameRecords = [];
+        // 控制容器和按钮
+        var gameBoard = document.getElementById('game-board');
+        var scoreDisplay = document.getElementById('score');
+        var timerDisplay = document.getElementById('timer');
+        var finalScoreDisplay = document.getElementById('final-score');
+        var startStopButton = document.getElementById('start-stop-button');
+        var settingsModal = document.getElementById('settings-modal');
+        var GameModeModal = document.getElementById('GameMode');
+        // 内容物的大小
+        var blockSize = 200;
+        var radius = blockSize / 2;
+        var circleOpacity = 1;
+        var targetColor = 'red';
+        var timer;
+        var countdown;
+        var gameStarted = false;
+        var mode = null;
+
+
+        window.onload = function() {
+            var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+
+            checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                checkboxes.forEach(function(box) {
+                    if (box !== checkbox && box.id.startsWith('choose-mode')) {
+                        box.checked = false;
+                        }
+                    });
+                    mode = this.parentNode.parentNode.id; // 更新 mode 变量
+                    // console.log('Selected mode:', mode); // 输出当前模式
+                }
+            });
+        });
+        };
+
+        function BackToMenu()
+        {
+            window.location.href = "Menu.html";
+        }
+
+        function toggleGame() {
+            if (gameStarted) {
+                endGame();
+            } else {
+                startGame();
+            }
+         }//控制游戏的开始/结束
+
+        function startGame() {
+            score = 0;
+            scoreDisplay.innerText = 'Score: ' + score;
+            timerDisplay.innerText = 'Time left: 60';
+            finalScoreDisplay.style.display = 'none';
+            startStopButton.innerText = 'Stop';
+            gameStarted = true;
+            document.body.classList.add('crosshair-cursor');
+            createCircle();
+            timer = setTimeout(endGame, 60000);
+            countdown = setInterval(function() {
+                var currentTime = parseInt(timerDisplay.innerText.split(': ')[1]);
+                timerDisplay.innerText = 'Time left: ' + (currentTime - 1);
+            }, 1000);
+        }//开始游戏后，start按钮变为stop 开始倒计时并实时显示得分
+
+        function endGame() {
+
+            finalScoreDisplay.innerText = 'Game Over. Your score is: ' + score;
+            finalScoreDisplay.style.display = 'block';
+            gameBoard.innerHTML = '';
+            clearTimeout(timer);
+            clearInterval(countdown);
+            startStopButton.innerText = 'Start';
+            gameStarted = false;
+            document.body.classList.remove('crosshair-cursor');
+        }//结束游戏 stop按钮变为start 得分居中显示 鼠标回复为指针
+
+        function createCircle() {
+            var circle = document.createElement('div');
+            circle.className = 'circle';
+            circle.style.width = radius + 'px';
+            circle.style.height = radius + 'px';
+            circle.style.color = targetColor;
+            circle.style.opacity = circleOpacity;
+            var maxX = gameBoard.clientWidth - radius * 2;
+            var maxY = gameBoard.clientHeight - radius * 2 - 80;
+            circle.style.left = Math.floor(Math.random() * maxX + radius) + 'px';
+            circle.style.top = Math.floor(maxY / (Math.random() * (8 - 2) + 2) + radius) + 'px';
+            circle.onclick = function() {
+                score++;
+                scoreDisplay.innerText = 'Score: ' + score;
+                gameBoard.removeChild(circle);
+                createCircle();
+            };
+            gameBoard.appendChild(circle);
+
+            if (mode == 'warming-up')
+            {
+                setTimeout(function()
+                {
+                    if (circle)
+                    {
+                        gameBoard.removeChild(circle);
+                        createCircle(); // 创建新的标靶
+                    }
+                }, 1500); // 1.5秒后执行
+            }
+            else if (mode == 'fast-click')
+            {
+                var t =document.getElementById('Time-slider').value * 1000;
+                var o = document.getElementById('Fade').value;
+                var initialOpacity = parseFloat(circle.style.opacity);
+
+                var startTime = null;
+                function fadeCircle(timestamp)
+                {
+                    if(!startTime)
+                        startTime = timestamp
+                    var elapsed = timestamp - startTime;
+                    var newOpacity = initialOpacity - (initialOpacity - initialOpacity * o) * (elapsed / t);
+                    circle.style.opacity = Math.max(newOpacity, initialOpacity * o);
+
+                    if (elapsed < t)
+                        requestAnimationFrame(fadeCircle);
+                    else
+                        if (circle && gameBoard.contains(circle))
+                        {
+                            gameBoard.removeChild(circle);
+                            createCircle(); // 创建新的标靶
+                        }
+
+                }
+                requestAnimationFrame(fadeCircle);
+
+                setTimeout(function()
+                {
+                    if (circle && gameBoard.contains(circle))
+                    {
+                        gameBoard.removeChild(circle);
+                        createCircle(); // 创建新的标靶
+                    }
+                }, t);
+
+            }
+            else if (mode == 'exact-remember')
+            {
+                var t =document.getElementById('Time-slider-exr').value * 1000;
+                var o = document.getElementById('Fade-exr').value;
+                circle.style.opacity = o;
+                var initialOpacity = o;
+
+                var startTime = null;
+                function fadeCircle(timestamp)
+                {
+                    if(!startTime)
+                        startTime = timestamp
+                    var elapsed = timestamp - startTime;
+                    var newOpacity = initialOpacity - initialOpacity * (elapsed / t);
+                    circle.style.opacity = Math.max(newOpacity, 0);
+
+                    if (elapsed < t)
+                        requestAnimationFrame(fadeCircle);
+
+                }
+                requestAnimationFrame(fadeCircle);
+
+                setTimeout(function()
+                {
+                    if (circle && gameBoard.contains(circle))
+                    {
+                        gameBoard.removeChild(circle);
+                        createCircle(); // 创建新的标靶
+                    }
+                }, 2500);
+
+
+            }
+}
+
+        function openSettings() {
+            settingsModal.classList.add('open');
+        }//打开设置面板
+
+        function closeSettings() {
+            settingsModal.classList.remove('open');
+        }//关闭面板
+
+        function openMode(){
+            GameModeModal.classList.add('open');
+        }
+        function closeMode(){
+            GameModeModal.classList.remove('open');
+        }
+        function showContent(id) {
+            var contents = document.querySelectorAll('.settings-content');
+            contents.forEach(function(content) {
+                content.classList.remove('active');
+            });
+            document.getElementById(id).classList.add('active');
+        }//控制选项
+
+        function changeBackground(image) {
+            document.body.style.backgroundImage = 'url(' + image + ')';
+            closeSettings();
+        }//改背景
+        function changeGun(image) {
+            document.getElementById('gun-image').src = image;
+            closeSettings();
+        }//改枪型
+
+        function updateCircleSize(value) {
+            radius = blockSize * (value / 100) / 2;
+        }//改标靶半径
+
+        function updateCircleOpacity(value) {
+            circleOpacity = value;
+        }//改标靶透明度
+
+        function changeTargetColor(color) {
+            targetColor = color;
+            var targetColorOption = document.createElement('div');
+            targetColorOption.className = 'target-color-option';
+            targetColorOption.style.background = color;
+            targetColorOption.onclick = function() {
+                targetColor = color;
+            };
+            document.getElementById('target-color-select').appendChild(targetColorOption);
+            closeSettings();
+        }//改标靶颜色
+
+    </script>
+</body>
+</html>
